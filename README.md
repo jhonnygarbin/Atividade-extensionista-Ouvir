@@ -12,22 +12,7 @@ Projeto extensionista (CST em Análise e Desenvolvimento de Sistemas — UNINTER
 
 ## Tecnologias
 
-HTML5, CSS3 e JavaScript puro (sem frameworks, sem dependências externas). Um único arquivo (`index.html`), leve e fácil de hospedar.
-
-## Como publicar no GitHub Pages
-
-1. Crie um repositório novo no GitHub (por exemplo, `portal-acessibilidade`).
-2. Suba o arquivo `index.html` (e este `README.md`) para a branch `main`.
-3. No repositório, vá em **Settings → Pages**.
-4. Em **Branch**, selecione `main` e a pasta `/root`, depois clique em **Save**.
-5. Após alguns minutos, o GitHub mostrará o link público, algo como:
-   `https://seu-usuario.github.io/portal-acessibilidade/`
-
-## Como testar localmente
-
-Basta abrir o arquivo `index.html` diretamente no navegador — não precisa de servidor.
-
-Para testar a leitura em voz alta, use um navegador atualizado (Chrome, Edge ou Safari têm o melhor suporte a `speechSynthesis` em português).
+HTML5, CSS3 e JavaScript puro (sem frameworks, sem dependências externas). 
 
 ## Compatibilidade testada
 
