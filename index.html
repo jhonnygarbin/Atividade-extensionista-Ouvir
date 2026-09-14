@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ouvir — Portal de Leitura Assistida</title>
+<meta name="description" content="Portal de acessibilidade digital com leitura de texto em voz alta, ajuste de contraste e tamanho de fonte.">
+<style>
+  :root{
+    --bg: #FBF9F4;
+    --surface: #FFFFFF;
+    --ink: #1C1B19;
+    --ink-soft: #55524C;
+    --line: #E4E0D6;
+    --accent: #1F5F4D;
+    --accent-ink: #0E362B;
+    --accent-soft: #E6EFE9;
+    --focus: #1657B0;
+    --radius: 4px;
+    --step: 1;
+    --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-ui: "IBM Plex Sans", Arial, sans-serif;
+  }
+
+  html[data-contrast="alto"]{
+    --bg: #000000;
+    --surface: #0A0A0A;
+    --ink: #FFFFFF;
+    --ink-soft: #F2F2F2;
+    --line: #FFFFFF;
+    --accent: #FFD400;
+    --accent-ink: #000000;
+    --accent-soft: #1A1A1A;
+    --focus: #FFD400;
+  }
+
+  html[data-font="leitura"]{
+    --font-body: "Atkinson Hyperlegible", "Verdana", sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html{
+    font-size: calc(16px * var(--step));
+    scroll-behavior: smooth;
+  }
+
+  body{
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.65;
+    transition: background .15s ease, color .15s ease;
+  }
+
+  a{ color: var(--accent-ink); }
+  html[data-contrast="alto"] a{ color: var(--accent); text-decoration-thickness: 2px; }
+
+  .skip-link{
+    position: absolute;
+    left: -999px;
+    top: 0;
+    background: var(--accent);
+    color: var(--surface);
+    padding: .9rem 1.4rem;
+    z-index: 100;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    border-radius: 0 0 var(--radius) 0;
+  }
+  .skip-link:focus{ left: 0; }
+
+  :focus-visible{
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  header.site{
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .bar{
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 1.1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .brand{
+    display: flex;
+    align-items: baseline;
+    gap: .6rem;
+    font-family: var(--font-ui);
+  }
+  .brand .mark{
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--surface);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .brand .name{
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: .01em;
+  }
+  .brand .tag{
+    color: var(--ink-soft);
+    font-size: .85rem;
+  }
+
+  .controls{
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    font-family: var(--font-ui);
+  }
+
+  .ctrl-group{
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: .25rem;
+    background: var(--bg);
+  }
+
+  .ctrl-group button{
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: .85rem;
+    font-weight: 600;
+    padding: .4rem .7rem;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .ctrl-group button[aria-pressed="true"]{
+    background: var(--accent);
+    color: var(--surface);
+  }
+  html[data-contrast="alto"] .ctrl-group button[aria-pressed="true"]{
+    color: var(--accent-ink);
+  }
+  .ctrl-group button:hover{ text-decoration: underline; }
+
+  main{
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .hero{
+    padding: 3.2rem 0 2.4rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero .eyebrow{
+    font-family: var(--font-ui);
+    color: var(--accent-ink);
+    font-weight: 700;
+    font-size: .95rem;
+    margin: 0 0 .8rem;
+  }
+  html[data-contrast="alto"] .hero .eyebrow{ color: var(--accent); }
+  .hero h1{
+    font-size: clamp(1.9rem, 4vw, 2.7rem);
+    line-height: 1.2;
+    margin: 0 0 1rem;
+    max-width: 20ch;
+  }
+  .hero p{
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 1.08rem;
+  }
+
+  section{ padding: 2.6rem 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type{ border-bottom: none; }
+
+  h2{
+    font-size: 1.5rem;
+    margin: 0 0 1.2rem;
+  }
+
+  .reader{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.6rem;
+  }
+
+  .reader label{
+    display: block;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    margin-bottom: .6rem;
+  }
+
+  .reader textarea{
+    width: 100%;
+    min-height: 9rem;
+    padding: .9rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  .reader-row{
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    font-family: var(--font-ui);
+  }
+
+  .btn{
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: .95rem;
+    padding: .75rem 1.3rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--surface);
+    cursor: pointer;
+  }
+  html[data-contrast="alto"] .btn{ color: var(--accent-ink); }
+  .btn:hover{ opacity: .88; }
+  .btn.ghost{
+    background: transparent;
+    color: var(--accent-ink);
+  }
+  html[data-contrast="alto"] .btn.ghost{ color: var(--accent); }
+
+  .btn:disabled{ opacity: .45; cursor: not-allowed; }
+
+  .rate-field{
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .9rem;
+    color: var(--ink-soft);
+  }
+
+  #status{
+    font-family: var(--font-ui);
+    font-size: .88rem;
+    color: var(--ink-soft);
+    margin-top: .8rem;
+    min-height: 1.2em;
+  }
+
+  #warn{
+    display: none;
+    font-family: var(--font-ui);
+    font-size: .9rem;
+    background: var(--accent-soft);
+    border: 1px solid var(--line);
+    padding: .8rem 1rem;
+    border-radius: var(--radius);
+    margin-top: 1rem;
+  }
+
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.4rem;
+  }
+  @media (max-width: 760px){ .grid{ grid-template-columns: 1fr; } }
+
+  .card{
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1.4rem;
+  }
+  .card .num{
+    font-family: var(--font-ui);
+    font-weight: 700;
+    color: var(--accent-ink);
+    font-size: .85rem;
+    margin-bottom: .5rem;
+  }
+  html[data-contrast="alto"] .card .num{ color: var(--accent); }
+  .card h3{ margin: 0 0 .5rem; font-size: 1.1rem; }
+  .card p{ margin: 0; color: var(--ink-soft); font-size: .97rem; }
+
+  .about p{ max-width: 68ch; }
+
+  footer{
+    font-family: var(--font-ui);
+    font-size: .85rem;
+    color: var(--ink-soft);
+    padding: 2rem 1.5rem 3rem;
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior: auto; }
+    *{ transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+<header class="site">
+  <div class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">O</span>
+      <span class="name">Ouvir</span>
+      <span class="tag">leitura assistida para todos</span>
+    </div>
+
+    <div class="controls" role="group" aria-label="Preferências de acessibilidade">
+      <div class="ctrl-group" role="group" aria-label="Tamanho do texto">
+        <button type="button" id="font-menor" aria-label="Diminuir tamanho do texto">A−</button>
+        <button type="button" id="font-normal" aria-pressed="true" aria-label="Tamanho de texto padrão">A</button>
+        <button type="button" id="font-maior" aria-label="Aumentar tamanho do texto">A+</button>
+      </div>
+      <div class="ctrl-group" role="group" aria-label="Contraste">
+        <button type="button" id="contraste-normal" aria-pressed="true">Contraste padrão</button>
+        <button type="button" id="contraste-alto" aria-pressed="false">Alto contraste</button>
+      </div>
+      <div class="ctrl-group" role="group" aria-label="Fonte de leitura facilitada">
+        <button type="button" id="fonte-leitura" aria-pressed="false">Fonte para leitura fácil</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="conteudo">
+
+  <section class="hero">
+    <p class="eyebrow">Tecnologia aplicada à inclusão digital</p>
+    <h1>Cole um texto e ouça, no seu ritmo, na sua tela.</h1>
+    <p>O Ouvir é um portal gratuito que lê textos em voz alta, ajusta o contraste e o tamanho da letra, e pode ser todo controlado pelo teclado. Feito para pessoas com baixa visão, dificuldade de leitura, ou qualquer um que prefira escutar.</p>
+  </section>
+
+  <section aria-labelledby="leitor-titulo">
+    <h2 id="leitor-titulo">Leitor de texto em voz alta</h2>
+
+    <div class="reader">
+      <label for="texto">Cole ou digite o texto que você quer ouvir</label>
+      <textarea id="texto" placeholder="Cole aqui uma notícia, um trecho de livro, uma bula de remédio, um e-mail... qualquer texto que você prefira ouvir em vez de ler.">Bem-vindo ao Ouvir. Este é um texto de exemplo. Clique em "Ler em voz alta" para escutar, ou apague este texto e cole o seu.</textarea>
+
+      <div class="reader-row">
+        <button type="button" class="btn" id="btn-ler">▶ Ler em voz alta</button>
+        <button type="button" class="btn ghost" id="btn-pausar" disabled>Pausar</button>
+        <button type="button" class="btn ghost" id="btn-parar" disabled>Parar</button>
+
+        <label class="rate-field" for="velocidade">
+          Velocidade
+          <input type="range" id="velocidade" min="0.5" max="1.5" step="0.1" value="1" style="width:7rem">
+        </label>
+      </div>
+
+      <p id="status" role="status" aria-live="polite"></p>
+      <div id="warn" role="alert">Seu navegador não tem suporte à leitura de voz (Web Speech API). Tente em uma versão recente do Chrome, Edge ou Safari.</div>
+    </div>
+  </section>
+
+  <section aria-labelledby="recursos-titulo">
+    <h2 id="recursos-titulo">Recursos de acessibilidade</h2>
+    <div class="grid">
+      <div class="card">
+        <p class="num">Leitura</p>
+        <h3>Texto em áudio</h3>
+        <p>Qualquer texto colado no leitor pode ser ouvido em voz alta, com controle de velocidade, pausa e parada.</p>
+      </div>
+      <div class="card">
+        <p class="num">Visual</p>
+        <h3>Contraste e fonte</h3>
+        <p>Alto contraste, aumento de fonte e uma tipografia desenhada para leitura fácil, ativados nos botões do topo.</p>
+      </div>
+      <div class="card">
+        <p class="num">Navegação</p>
+        <h3>100% por teclado</h3>
+        <p>Todos os controles são acessíveis via Tab, com foco visível e um atalho para pular direto ao conteúdo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="about" aria-labelledby="sobre-titulo">
+    <h2 id="sobre-titulo">Sobre o projeto</h2>
+    <p>O Ouvir foi desenvolvido como atividade extensionista do curso de Análise e Desenvolvimento de Sistemas, com o objetivo de aplicar tecnologia à inclusão digital. O site é construído em HTML5, CSS3 e JavaScript puro, usa a Web Speech API do navegador para a leitura em voz alta, e é publicado gratuitamente pelo GitHub Pages — sem custo de hospedagem e com código-fonte aberto.</p>
+  </section>
+
+</main>
+
+<footer>
+  Ouvir — Portal de Acessibilidade para Leitura Assistida. Projeto extensionista, código aberto no GitHub.
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+
+  // ---- Tamanho de fonte ----
+  var steps = { menor: 0.9, normal: 1, maior: 1.2 };
+  var fontButtons = {
+    menor: document.getElementById('font-menor'),
+    normal: document.getElementById('font-normal'),
+    maior: document.getElementById('font-maior')
+  };
+  function setFontStep(key){
+    root.style.setProperty('--step', steps[key]);
+    Object.keys(fontButtons).forEach(function(k){
+      fontButtons[k].setAttribute('aria-pressed', String(k === key));
+    });
+  }
+  fontButtons.menor.addEventListener('click', function(){ setFontStep('menor'); });
+  fontButtons.normal.addEventListener('click', function(){ setFontStep('normal'); });
+  fontButtons.maior.addEventListener('click', function(){ setFontStep('maior'); });
+
+  // ---- Contraste ----
+  var btnContrasteNormal = document.getElementById('contraste-normal');
+  var btnContrasteAlto = document.getElementById('contraste-alto');
+  function setContraste(alto){
+    root.setAttribute('data-contrast', alto ? 'alto' : 'normal');
+    btnContrasteNormal.setAttribute('aria-pressed', String(!alto));
+    btnContrasteAlto.setAttribute('aria-pressed', String(alto));
+  }
+  btnContrasteNormal.addEventListener('click', function(){ setContraste(false); });
+  btnContrasteAlto.addEventListener('click', function(){ setContraste(true); });
+
+  // ---- Fonte de leitura fácil ----
+  var btnFonteLeitura = document.getElementById('fonte-leitura');
+  btnFonteLeitura.addEventListener('click', function(){
+    var ativo = root.getAttribute('data-font') === 'leitura';
+    root.setAttribute('data-font', ativo ? 'padrao' : 'leitura');
+    btnFonteLeitura.setAttribute('aria-pressed', String(!ativo));
+  });
+
+  // ---- Leitura em voz alta (Web Speech API) ----
+  var texto = document.getElementById('texto');
+  var btnLer = document.getElementById('btn-ler');
+  var btnPausar = document.getElementById('btn-pausar');
+  var btnParar = document.getElementById('btn-parar');
+  var velocidade = document.getElementById('velocidade');
+  var status = document.getElementById('status');
+  var warn = document.getElementById('warn');
+
+  var suportado = 'speechSynthesis' in window;
+  var utterance = null;
+
+  if(!suportado){
+    warn.style.display = 'block';
+    btnLer.disabled = true;
+  }
+
+  function falar(){
+    if(!suportado) return;
+    var conteudo = texto.value.trim();
+    if(!conteudo){
+      status.textContent = 'Cole ou digite algum texto antes de ouvir.';
+      return;
+    }
+    window.speechSynthesis.cancel();
+    utterance = new SpeechSynthesisUtterance(conteudo);
+    utterance.lang = 'pt-BR';
+    utterance.rate = parseFloat(velocidade.value);
+
+    utterance.onstart = function(){
+      status.textContent = 'Lendo em voz alta...';
+      btnLer.disabled = true;
+      btnPausar.disabled = false;
+      btnParar.disabled = false;
+      btnPausar.textContent = 'Pausar';
+    };
+    utterance.onend = function(){
+      status.textContent = 'Leitura concluída.';
+      btnLer.disabled = false;
+      btnPausar.disabled = true;
+      btnParar.disabled = true;
+    };
+    utterance.onerror = function(){
+      status.textContent = 'Não foi possível concluir a leitura. Tente novamente.';
+      btnLer.disabled = false;
+      btnPausar.disabled = true;
+      btnParar.disabled = true;
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  btnLer.addEventListener('click', falar);
+
+  btnPausar.addEventListener('click', function(){
+    if(!suportado) return;
+    if(window.speechSynthesis.speaking && !window.speechSynthesis.paused){
+      window.speechSynthesis.pause();
+      btnPausar.textContent = 'Continuar';
+      status.textContent = 'Leitura pausada.';
+    } else if(window.speechSynthesis.paused){
+      window.speechSynthesis.resume();
+      btnPausar.textContent = 'Pausar';
+      status.textContent = 'Lendo em voz alta...';
+    }
+  });
+
+  btnParar.addEventListener('click', function(){
+    if(!suportado) return;
+    window.speechSynthesis.cancel();
+    status.textContent = 'Leitura interrompida.';
+    btnLer.disabled = false;
+    btnPausar.disabled = true;
+    btnParar.disabled = true;
+  });
+})();
+</script>
+
+</body>
+</html>
